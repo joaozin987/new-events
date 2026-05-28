@@ -1,50 +1,73 @@
-# Welcome to your Expo app 👋
+# Eventus Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile de eventos criado com **Expo** e **expo-router**.
 
-## Get started
+## Sobre o projeto
 
-1. Install dependencies
+Este sistema permite que o usuário:
 
-   ```bash
-   npm install
-   ```
+- faça cadastro e login
+- veja eventos publicados
+- crie novos eventos com imagem, local, cidade, preço e data
+- acesse seus próprios eventos em **Meus Eventos**
+- edite seu perfil e faça logout
 
-2. Start the app
+O app usa armazenamento local com **AsyncStorage** como fallback, tornando o fluxo funcional mesmo sem backend Firebase configurado.
 
-   ```bash
-   npx expo start
-   ```
+## Principais funcionalidades
 
-In the output, you'll find options to open the app in a
+- Autenticação de usuário (login/cadastro)
+- Navegação em abas com `expo-router`
+- Lista de eventos e busca básica
+- Criação de evento com foto e localização
+- Perfil do usuário com edição de dados
+- Listagem de eventos do usuário
+- Exibição de detalhes do evento e QR Code
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Estrutura do projeto
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- `app/` — telas e rotas do aplicativo
+- `app/(tabs)/` — rotas de aba principais
+- `components/` — cabeçalho, rodapé e componentes reutilizáveis
+- `hooks/` — hooks customizados
+- `constants/` — definições de tema e cores
+- `app/services/appStorage.ts` — persistência local de usuários e eventos
+- `app/firebase.ts` — inicialização opcional do Firebase
 
-## Get a fresh project
+## Como executar
 
-When you're ready, run:
+1. Instale as dependências:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Inicie o Expo:
 
-## Learn more
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. Abra no navegador, no emulador ou com o Expo Go no celular.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+> Se a porta `8081` já estiver em uso, aceite usar outra porta.
 
-## Join the community
+## Comandos úteis
 
-Join our community of developers creating universal apps.
+- `npm run start` — inicia o Expo
+- `npm run android` — executa no Android
+- `npm run ios` — executa no iOS
+- `npm run web` — executa no navegador
+- `npm run lint` — verifica o código com ESLint
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Observações para o professor
+
+O sistema demonstra:
+
+- uso de rotas e layout global com `expo-router`
+- gestão de estado de usuário e eventos
+- persistência local com AsyncStorage
+- formulários de cadastro e criação de evento
+- uso de recursos nativos (imagem, localização, QR Code)
+
+O app está pronto para entrega e pode ser executado localmente sem depender da configuração completa do Firebase.
