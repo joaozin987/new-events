@@ -1,112 +1,156 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, SafeAreaView, StatusBar, TextInput, Pressable } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
+import { mockEvents } from '@/src/data/events';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function Explore() {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const router = useRouter();
+  const [allEvents, setAllEvents] = useState<typeof mockEvents>([]);
+  const [filteredEvents, setFilteredEvents] = useState<typeof mockEvents>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default function TabTwoScreen() {
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const filterEvents = useCallback(() => {
+    if (!searchQuery.trim()) {
+      setFilteredEvents(allEvents);
+    } else {
+      const filtered = allEvents.filter(event =>
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredEvents(filtered);
+    }
+  }, [allEvents, searchQuery]);
+
+  useEffect(() => {
+    filterEvents();
+  }, [filterEvents]);
+
+  const loadEvents = async () => {
+    try {
+      const storedEvents = await AsyncStorage.getItem('userEvents');
+      const userEvents = storedEvents ? JSON.parse(storedEvents) : [];
+      const combinedEvents = [...mockEvents, ...userEvents];
+      setAllEvents(combinedEvents);
+    } catch (error) {
+      console.error('Erro ao carregar eventos:', error);
+      setAllEvents(mockEvents);
+    }
+  };
+
+  
+
+  const renderEvent = ({ item }: { item: typeof mockEvents[0] }) => (
+    <Pressable
+      style={[styles.eventCard, { backgroundColor: colors.card }]}
+      onPress={() => router.push(`/EventDetail?id=${item.id}`)}
+    >
+      <Image source={{ uri: item.image }} style={styles.eventImage} />
+      <View style={styles.eventInfo}>
+        <Text style={[styles.eventTitle, { color: colors.text }]}>{item.title}</Text>
+        <Text style={[styles.eventCity, { color: colors.text }]}>{item.city}</Text>
+        <Text style={[styles.eventCategory, { color: colors.tint }]}>{item.category}</Text>
+      </View>
+    </Pressable>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar
+        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Explorar Eventos</Text>
+        <Text style={[styles.subtitle, { color: colors.text }]}>
+          Descubra eventos incríveis próximos a você
+        </Text>
+        <TextInput
+          style={[styles.searchInput, { backgroundColor: colors.card, color: colors.text, borderColor: colors.text }]}
+          placeholder="Buscar eventos..."
+          placeholderTextColor={colors.text + '80'}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+      </View>
+      <FlatList
+        data={filteredEvents}
+        renderItem={renderEvent}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
   },
-  titleContainer: {
+  header: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  searchInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  list: {
+    padding: 20,
+  },
+  eventCard: {
     flexDirection: 'row',
-    gap: 8,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  eventImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'cover',
+  },
+  eventInfo: {
+    flex: 1,
+    padding: 12,
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  eventCity: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  eventCategory: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

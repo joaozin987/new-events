@@ -7,9 +7,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
-import { useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { createUser, loginUser, getCurrentUser } from "./services/appStorage";
 
 export default function Auth() {
   const router = useRouter();
@@ -18,18 +23,62 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = () => {
-    console.log("Autenticando...");
-    router.replace("/home");
+  useEffect(() => {
+    const checkAuth = async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        router.replace("/(tabs)/home");
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  const getAuthErrorMessage = (error: any) => {
+    if (!error) return "Não foi possível autenticar.";
+
+    const code = error.code ?? error?.nativeError?.code;
+    switch (code) {
+      case "auth/email-already-in-use":
+        return "Este e-mail já está em uso.";
+      case "auth/user-not-found":
+        return "Usuário não encontrado.";
+      case "auth/wrong-password":
+        return "Senha incorreta.";
+      case "auth/invalid-email":
+        return "Digite um e-mail válido.";
+      case "auth/weak-password":
+        return "A senha precisa ter pelo menos 6 caracteres.";
+      default:
+        return error.message || "Não foi possível autenticar.";
+    }
+  };
+
+  const handleAuth = async () => {
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        await loginUser({ email, password });
+      } else {
+        await createUser({ email, password, name });
+      }
+
+      router.replace("/(tabs)/home");
+    } catch (error: any) {
+      Alert.alert("Erro de autenticação", getAuthErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isFormValid = email && password && (isLogin || name);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "white" }}>
-    
-
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" backgroundColor="#ffffff" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -100,14 +149,18 @@ export default function Auth() {
           <Pressable
             style={[
               styles.button,
-              !isFormValid && { opacity: 0.5 }
+              (!isFormValid || loading) && { opacity: 0.5 }
             ]}
             onPress={handleAuth}
-            disabled={!isFormValid}
+            disabled={!isFormValid || loading}
           >
-            <Text style={styles.buttonText}>
-              {isLogin ? "Entrar" : "Criar conta"}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {isLogin ? "Entrar" : "Criar conta"}
+              </Text>
+            )}
           </Pressable>
 
           {/* Alternar login/cadastro */}
@@ -121,11 +174,16 @@ export default function Auth() {
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+
   container: {
     flexGrow: 1,
     justifyContent: "center",
@@ -194,7 +252,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    color: "#fff",
+    color: "#000",
     fontWeight: "bold",
     fontSize: 16,
   },

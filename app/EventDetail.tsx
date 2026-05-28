@@ -5,8 +5,16 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  SafeAreaView,
+  Platform,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState, useEffect } from "react";
+import QRCode from "react-native-qrcode-svg";
+import { getEventById } from "./services/appStorage";
 
 const mockEvents = [
   {
@@ -26,48 +34,105 @@ export default function EventDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const event = mockEvents.find((e) => e.id === id);
+  const [event, setEvent] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const eventDescription = event?.description || "Participe de um evento exclusivo com conteúdo de alta qualidade, networking e experiência memorável.";
 
-  if (!event) {
+  useEffect(() => {
+    const loadEvent = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const localEvent = await getEventById(id as string);
+        if (localEvent) {
+          setEvent(localEvent);
+        } else {
+          const fallback = mockEvents.find((e) => e.id === id);
+          setEvent(fallback ?? null);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar evento:', error);
+        const fallback = mockEvents.find((e) => e.id === id);
+        setEvent(fallback ?? null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvent();
+  }, [id]);
+
+  if (loading) {
     return (
       <View style={styles.center}>
-        <Text>Evento não encontrado</Text>
-        <Pressable onPress={() => router.push("/CreateEvent")}>
-          <Text style={{ color: "blue", marginTop: 10 }}>
-            Voltar
-          </Text>
-        </Pressable>
+        <ActivityIndicator size="large" color="#4f46e5" />
       </View>
     );
   }
 
+  if (!event) {
+    return (
+      <View style={styles.center}>
+          <Text>Evento não encontrado</Text>
+          <Pressable onPress={() => router.push("/CreateEvent")}> 
+            <Text style={{ color: "#000", marginTop: 10 }}>
+              Voltar
+            </Text>
+          </Pressable>
+        </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView>
+    <SafeAreaView style={styles.page}>
+      <StatusBar style="dark" backgroundColor="#ffffff" />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <Image source={{ uri: event.image }} style={styles.image} />
 
         <View style={styles.content}>
           <Text style={styles.title}>{event.title}</Text>
+          <Text style={styles.subtitle}>{event.city} • {event.category || "Evento"}</Text>
 
           <Text style={styles.info}>📅 {event.date}</Text>
-          <Text style={styles.info}>⏰ {event.time}</Text>
+          <Text style={styles.info}>⏰ {event.time || "A confirmar"}</Text>
           <Text style={styles.info}>
             📍 {event.location}, {event.city}
           </Text>
 
-          <View style={{ marginTop: 20 }}>
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionTitle}>Sobre o evento</Text>
+            <Text style={styles.descriptionText}>{eventDescription}</Text>
+          </View>
+
+          <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Organizador</Text>
             <Text>{event.organizer}</Text>
           </View>
-
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.sectionTitle}>Sobre o evento</Text>
-            <Text style={{ lineHeight: 22 }}>
-              Venha participar do {event.title}! Um evento imperdível.
-            </Text>
-          </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showQrModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowQrModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>QR Code do Evento</Text>
+            <View style={styles.qrContainer}>
+              <QRCode value={event?.id ?? ""} size={220} backgroundColor="white" />
+            </View>
+            <Pressable style={styles.closeButton} onPress={() => setShowQrModal(false)}>
+              <Text style={styles.closeButtonText}>Fechar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Bottom Bar */}
       <View style={styles.bottomBar}>
@@ -80,20 +145,40 @@ export default function EventDetail() {
           </Text>
         </View>
 
-        <Pressable style={styles.button}>
-          <Text style={styles.buttonText}>
-            {event.price ? "Comprar ingresso" : "Inscrever-se"}
-          </Text>
-        </Pressable>
+        <View style={styles.buttonGroup}>
+          <Pressable
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => setShowQrModal(true)}
+          >
+            <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+              QR Code
+            </Text>
+          </Pressable>
+          <Pressable style={styles.button}>
+            <Text style={styles.buttonText}>
+              {event.price ? "Comprar ingresso" : "Inscrever-se"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
   image: {
     width: "100%",
     height: 250,
+    resizeMode: 'cover',
   },
 
   content: {
@@ -103,7 +188,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 8,
+  },
+
+  subtitle: {
+    color: "#6b7280",
+    fontSize: 14,
+    marginBottom: 14,
+  },
+
+  sectionBlock: {
+    marginTop: 20,
+  },
+
+  descriptionText: {
+    marginTop: 8,
+    lineHeight: 22,
+    color: "#4b5563",
   },
 
   info: {
@@ -122,12 +223,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "#fff",
-    padding: 15,
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: Platform.OS === "ios" ? 24 : 15,
     borderTopWidth: 1,
     borderColor: "#eee",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 6,
   },
 
   price: {
@@ -143,7 +250,62 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    color: "#fff",
+    color: "#000",
+    fontWeight: "bold",
+  },
+
+  buttonGroup: {
+    flexDirection: "row",
+  },
+
+  secondaryButton: {
+    backgroundColor: "#e5e7eb",
+    marginRight: 10,
+  },
+
+  secondaryButtonText: {
+    color: "#111827",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+
+  modalContent: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+
+  qrContainer: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+
+  closeButton: {
+    backgroundColor: "#4f46e5",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+  },
+
+  closeButtonText: {
+    color: "#000",
     fontWeight: "bold",
   },
 

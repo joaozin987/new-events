@@ -1,15 +1,16 @@
-import { View, Pressable, Text, StyleSheet } from "react-native";
+import { SafeAreaView, View, Pressable, Text, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
 
 export default function Footer() {
   const router = useRouter();
 
   return (
-    <View style={styles.footer}>
+    <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
+      <View style={styles.footer}>
       
-      <Pressable style={styles.item} onPress={() => router.push("/home")}>
+      <Pressable style={styles.item} onPress={() => router.push("/(tabs)/home")}>
         <Text style={styles.icon}>🏠</Text>
-        <Text style={styles.text}>Inicio</Text>
+        <Text style={styles.text}>Início</Text>
       </Pressable>
 
       <Pressable style={styles.item} onPress={() => router.push("/CreateEvent")}>
@@ -17,12 +18,17 @@ export default function Footer() {
         <Text style={styles.text}>Criar</Text>
       </Pressable>
 
-      <Pressable style={styles.item} onPress={() => router.push("/Profile")}>
+      <Pressable style={styles.item} onPress={() => router.push("/(tabs)/profile")}>
         <Text style={styles.icon}>👤</Text>
         <Text style={styles.text}>Perfil</Text>
       </Pressable>
+       <Pressable style={styles.item} onPress={() => router.push("/(tabs)/myevents")}>
+        <Text style={styles.icon}>🎉</Text>
+        <Text style={styles.text}>Meus Eventos</Text>
+      </Pressable>
 
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -31,15 +37,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    height: 70,
+    height: 64,
     borderTopWidth: 1,
-    borderColor: "#ddd",
-    backgroundColor: "#fff",
-
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+    paddingTop: 8,
+    paddingBottom: Platform.OS === "ios" ? 34 : 12,
+    // position fixed handled by SafeAreaView wrapper
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
   },
 
   item: {
@@ -49,9 +57,12 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 22,
   },
-
   text: {
     fontSize: 12,
     marginTop: 2,
+    color: '#000',
+  },
+  safeArea: {
+    backgroundColor: '#ffffff',
   },
 });
